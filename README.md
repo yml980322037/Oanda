@@ -9,8 +9,8 @@ Data is retrieved using Oanda API credentials stored in the config.py file.
 Data is stored using the SQL credentials stored in the config.py file.
 
 Analysis:
-Retrieve stored data from SQL database
-Perform analysis using Pandas library
+Retrieve stored data from SQL database.
+Perform analysis using Pandas library.
 Data is retrieved using the SQL credentials stored in the config.py file.
 
 Trade:
