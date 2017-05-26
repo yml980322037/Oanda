@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[ ]:
-
 class portfolio:
     
     def __init__(self):

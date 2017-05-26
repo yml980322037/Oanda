@@ -1,9 +1,4 @@
-
-# coding: utf-8
-
 # # Currently building for USDJPY
-
-# In[ ]:
 
 class risk:
     

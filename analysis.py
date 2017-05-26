@@ -1,8 +1,3 @@
-
-# coding: utf-8
-
-# In[1]:
-
 from pandas import Series, DataFrame
 import requests
 import json
@@ -11,20 +6,10 @@ import mysql.connector
 from datetime import datetime
 from mysql.connector import errorcode
 
-
-# In[2]:
-
-#SQL & API credentials. Store in config file.
-
-access_token = config.access_token
-account_id = config.account_id
-
 sql_host = config.sql_host
-sql_user = config.sql_user
-sql_password = config.sql_password
+sql_user = config.sql_user_analysis
+sql_password = config.sql_password_analysis
 
-
-# In[3]:
 
 # Returns tuple for each sql row.
 def selectlast(granularity, time, rows):
@@ -41,8 +26,6 @@ def selectlast(granularity, time, rows):
     return results;
 
 
-# In[4]:
-
 # Create dataframe from sql query result
 def dataframe(sqltable):
     names = ['time', 'openAsk', 'closeAsk', 'lowAsk', 'highAsk', 'openBid', 'closeBid', 'lowBid', 'highBid', 'volume']
@@ -50,8 +33,6 @@ def dataframe(sqltable):
     #df.set_index('time', inplace=True)
     return df
 
-
-# In[5]:
 
 def average_dataframe(sqltable):
     names = ['time', 'openAsk', 'closeAsk', 'lowAsk', 'highAsk', 'openBid', 'closeBid', 'lowBid', 'highBid', 'volume']
@@ -64,21 +45,15 @@ def average_dataframe(sqltable):
     return df[['time', 'open', 'high', 'low', 'close']]
 
 
-# In[6]:
-
 # Adds simple moving average to dataframe
 def add_sma(df, val):
     df['SMA{}'.format(val)] = df['openBid'].rolling(window=val).mean()
 
 
-# In[7]:
-
 def add_2_sma_av(df, val, val2):
     df['SMA{}'.format(val)] = df['open'].rolling(window=val).mean()
     df['SMA{}'.format(val2)] = df['open'].rolling(window=val2).mean()
 
-
-# In[8]:
 
 def add_state(df, firstsma, secondsma):
     state = 'NA'
@@ -93,8 +68,6 @@ def add_state(df, firstsma, secondsma):
         df.ix[i, 'State'] = state
 
 
-# In[9]:
-
 def state_above(sqlselect):
     df = dataframe(sqlselect)
     add_sma(df, 10)
@@ -105,8 +78,6 @@ def state_above(sqlselect):
     else:
         return 'Below'
 
-
-# In[10]:
 
 def get_current_rate(instrument):
         url = 'https://api-fxpractice.oanda.com/v1/prices'
@@ -119,8 +90,6 @@ def get_current_rate(instrument):
         return item
 
 
-# In[11]:
-
 def get_spread(instrument):
         url = 'https://api-fxpractice.oanda.com/v1/prices'
         headers = {'Authorization' : 'Bearer ' + access_token,'X-Accept-Datetime-Format': 'UNIX'}
@@ -131,29 +100,4 @@ def get_spread(instrument):
         ask = item['ask']
         bid = item['bid']
         return round((ask - bid) * 100, 2)
-
-
-# In[12]:
-
-get_current_rate('USD_JPY')
-
-
-# In[ ]:
-
-get_spread('USD_JPY')
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
-
-
-# In[ ]:
-
-
 

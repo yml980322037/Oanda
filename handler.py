@@ -1,16 +1,8 @@
-
-# coding: utf-8
-
-# In[3]:
-
-from abc import ABCMeta, abstractmethod
 from pandas import Series, DataFrame
 import config
 import mysql.connector
 from datetime import datetime
 
-
-# In[6]:
 
 class DataHandler:
     
@@ -25,7 +17,6 @@ class DataHandler:
         # Push Dataframe object to queue
 
 
-# In[5]:
 
 class HistoricalDataHandler:
     
