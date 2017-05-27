@@ -10,6 +10,10 @@ sql_host = config.sql_host
 sql_user = config.sql_user_analysis
 sql_password = config.sql_password_analysis
 
+url = config.url
+access_token = config.access_token
+account_id = config.account_id
+
 
 # Returns tuple for each sql row.
 def selectlast(granularity, time, rows):
@@ -51,10 +55,15 @@ def add_sma(df, val):
 
 
 def add_2_sma_av(df, val, val2):
+    if val > val2:
+        temp = val
+        val = val2
+        val2 = temp
     df['SMA{}'.format(val)] = df['open'].rolling(window=val).mean()
     df['SMA{}'.format(val2)] = df['open'].rolling(window=val2).mean()
 
 
+#Returns state of shorter moving average compared to the longer moving average
 def add_state(df, firstsma, secondsma):
     state = 'NA'
     for i in df.index:
@@ -68,7 +77,7 @@ def add_state(df, firstsma, secondsma):
         df.ix[i, 'State'] = state
 
 
-def state_above(sqlselect):
+def state(sqlselect):
     df = dataframe(sqlselect)
     add_sma(df, 10)
     add_sma(df, 12)

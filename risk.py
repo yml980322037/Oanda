@@ -22,4 +22,5 @@ class risk:
         return 1 # return event object with order data (long/short, orderamount, stoploss, takeprofit)
     
     def check_risk():
+        pass
 
