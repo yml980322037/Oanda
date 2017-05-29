@@ -13,7 +13,7 @@ from datetime import datetime
 import collections
 
 
-class event:
+class Event:
     
     def __init__(self, event_type):
         self.type = event_type
@@ -21,7 +21,7 @@ class event:
         
 
 
-class event_queue:
+class EventQueue:
     
     def __init__(self):
         self.queue = collections.deque()
@@ -29,29 +29,6 @@ class event_queue:
     def add_to_queue(self, eventobject):
         self.queue.append(eventobject)
     
-    def handle_next(self):
+    def next_event(self):
         if self.queue:
-            event = self.queue.popleft()
-            if event == None:
-                pass
-            elif event.type == 'tick':
-                #Call strategy
-                self.add_to_queue(strategy.generate_signal(eventobject))
-                print('Tick Event Popped')
-
-            elif event.type == 'signal':
-                #Call risk
-                print('Signal Event Popped')
-            elif event.type == 'trade':
-                #Call portfolio
-                print('Trade Event Popped')
-            elif event.type == 'order':
-                #Call execution
-                print('Order Event Popped')
-            elif event.type == 'fill':
-                #Wait in execution function until response received
-                #Call portfolio
-                print('Fill Event Popped')
-        else:
-            print('Queue is empty')
-
+            return self.queue.popleft()
