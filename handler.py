@@ -4,15 +4,17 @@ import event
 import analysis as an
 import mysql.connector
 from datetime import datetime
+from datetime import timedelta
 
+# Needs changing for DST
 
 class DataHandler:
     
     # Pull and return latest rate (with Dataframe of N previous bars)
     # Add error check for time on df vs current time
     def get_latest_rate(self, granularity='M15', n=10):
-        df = an.average_dataframe(an.selectlast(granularity, datetime.utcnow(), n))
-        ev = event.event('tick')
+        df = an.average_dataframe(an.selectlast(granularity, datetime.utcnow() + timedelta(hours = 1), n))
+        ev = event.Event('tick')
         ev.df = df
         ev.spread = an.get_spread('USD_JPY')
         return ev

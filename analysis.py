@@ -77,17 +77,6 @@ def add_state(df, firstsma, secondsma):
         df.ix[i, 'State'] = state
 
 
-def state(sqlselect):
-    df = dataframe(sqlselect)
-    add_sma(df, 10)
-    add_sma(df, 12)
-    add_state(df, 'SMA10', 'SMA12')
-    if df.iloc[-1]['State'] == 'Above':
-        return 'Above'
-    else:
-        return 'Below'
-
-
 def get_current_rate(instrument):
         url = 'https://api-fxpractice.oanda.com/v1/prices'
         headers = {'Authorization' : 'Bearer ' + access_token,'X-Accept-Datetime-Format': 'UNIX'}

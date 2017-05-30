@@ -10,6 +10,7 @@
 
 
 from datetime import datetime
+from datetime import timedelta
 import collections
 
 
@@ -17,7 +18,7 @@ class Event:
     
     def __init__(self, event_type):
         self.type = event_type
-        self.time = datetime.utcnow()
+        self.time = datetime.utcnow() + timedelta(hours = 1)
         
 
 
