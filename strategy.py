@@ -10,8 +10,8 @@ class Strategy:
 		an.add_state(ev.df, 'SMA3', 'SMA7')
 
 		three_hour_df = an.average_dataframe(an.selectlast('H3', ev.time, 7))
-		an.add_2_sma_av(three_hour_df, 3, 7)
-		an.add_state(three_hour_df, 'SMA3', 'SMA7')
+		an.add_2_sma_av(three_hour_df, 2, 7)
+		an.add_state(three_hour_df, 'SMA2', 'SMA7')
 		three_hour_trend = three_hour_df.iloc[-1]['State']
 
 

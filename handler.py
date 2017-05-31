@@ -20,6 +20,15 @@ class DataHandler:
         ev.spread = an.get_spread('USD_JPY')
         return ev
 
+    def get_single_rate(self, granularity='M15', n=10):
+        datetime_object = datetime.strptime("30/05/17 01:01", "%d/%m/%y %H:%M")
+        df = an.average_dataframe(an.selectlast(granularity, datetime_object, n))
+        ev = event.Event('tick')
+        ev.price = {'bid' : df.iloc[-1]['close'] + 0.01, 'ask' : df.iloc[-1]['close'] - 0.01}
+        ev.df = df
+        ev.spread = an.get_spread('USD_JPY')
+        return ev
+
 
 
 class HistoricalDataHandler:

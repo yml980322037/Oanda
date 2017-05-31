@@ -13,8 +13,10 @@ class Risk:
         ev = event_object
         ev.type = 'trade'
         ev.sl, ev.tp = self.sl_tp_calculator(ev.df, event_object.signal)
-        ev.units = self.position_size_calculator(500, self.riskpct, ev.signal, ev.price, ev.sl)
+        ev.pip_stop_loss = self.pip_stop_loss_calculator(ev.signal, ev.price, ev.sl)
+        ev.units = self.position_size_calculator(500, self.riskpct, ev.signal, ev.price, ev.pip_stop_loss)
         ev.margin = self.margin_requirement(ev.units, self.marginpct)
+
 
         return ev
 
@@ -39,11 +41,15 @@ class Risk:
             
     def position_size_calculator(self, balance, riskpct, signal, price, stoploss):
         if signal == 'buy':
-            pipstoploss = round(price['ask'] - stoploss, 2)
-            return round((((balance*riskpct)*price['ask'])/pipstoploss))
+            return round((((balance*riskpct)*price['ask'])/(stoploss/100)))
         elif signal == 'sell':
-            pipstoploss = round(stoploss - price['bid'], 2)
-            return round((((balance*riskpct)*price['bid'])/pipstoploss))
+            return round((((balance*riskpct)*price['bid'])/(stoploss/100)))
+
+    def pip_stop_loss_calculator(self, signal, price, stoploss):
+        if signal == 'buy':
+            return round((price['ask'] - stoploss)*100, 2)
+        elif signal == 'sell':
+            return round((stoploss - price['bid'])*100, 2)
 
         
     def margin_requirement(self, units, marginpct):
