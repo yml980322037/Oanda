@@ -15,6 +15,7 @@ class DataHandler:
     def get_latest_rate(self, granularity='M15', n=10):
         df = an.average_dataframe(an.selectlast(granularity, datetime.utcnow() + timedelta(hours = 1), n))
         ev = event.Event('tick')
+        ev.price = an.get_current_rate('USD_JPY')
         ev.df = df
         ev.spread = an.get_spread('USD_JPY')
         return ev
