@@ -16,9 +16,9 @@ import collections
 
 class Event:
     
-    def __init__(self, event_type):
+    def __init__(self, event_type, time = datetime.utcnow() + timedelta(hours = 1)):
         self.type = event_type
-        self.time = datetime.utcnow() + timedelta(hours = 1)
+        self.time = time
         
 
 
