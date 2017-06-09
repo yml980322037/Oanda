@@ -99,3 +99,28 @@ def get_spread(instrument):
         bid = item['bid']
         return round((ask - bid) * 100, 2)
 
+def get_balance():
+        url = config.url + '/v3/accounts/{}'.format(config.account_id)
+        headers = {'Authorization' : 'Bearer ' + config.access_token}
+        req = requests.get(url, headers = headers)
+        json = req.json()
+        return float(json['account']['balance'])
+
+def get_open_positions():
+        url = config.url + '/v3/accounts/{}'.format(config.account_id)
+        headers = {'Authorization' : 'Bearer ' + config.access_token}
+        req = requests.get(url, headers = headers)
+        json = req.json()
+        return int(json['account']['openPositionCount'])
+
+def last_fill():
+    sql = ("SELECT time, units FROM Log Where type = 'ORDER_FILL' ORDER BY time DESC LIMIT 1")
+    cnx = mysql.connector.connect(user=sql_user, password=sql_password,
+                             host=sql_host, database='USDJPY')
+    cursor = cnx.cursor()
+    cursor.execute(sql)
+    results = cursor.fetchone()
+    cursor.close()
+    cnx.close()
+    return results;
+
