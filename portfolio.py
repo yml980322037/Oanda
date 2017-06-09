@@ -14,7 +14,7 @@ class Portfolio:
         ev = event_object
         self.update()
         self.percentage_change()
-        if self.pct_change < -3 or ev.spread > 2 or ev.margin_total > (balance * 0.3) :
+        if self.pct_change < -3 or ev.spread > 2 or ev.margin_total > (self.balance * 0.3) :
             ev.type = 'none'
             return ev
         else:
