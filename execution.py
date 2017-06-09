@@ -11,7 +11,10 @@ class Execution:
 		self.last_trade_ID = '-1'
 
 
-	def order(self, units, sl, tp):
+	def order(self, event_object):
+		units = event_object.units
+		sl = event_object.sl
+		tp = event_object.tp
 		url = 'https://api-fxpractice.oanda.com/v3/accounts/{}/orders'.format(config.account_id)
 		headers = {'Authorization' : 'Bearer ' + config.access_token, 'Content-Type': 'application/json', 'Accept-Datetime-Format': 'UNIX'}
 		stop_loss = {'price': str(sl)}
@@ -23,11 +26,16 @@ class Execution:
 		self.last_trade_ID = json_data['orderFillTransaction']['id']
 		return json_data
 
-		#INCOMPLETE
+
 	def close_last_trade(self):
 		url = 'https://api-fxpractice.oanda.com/v3/accounts/{}/trades/{}/close'.format(config.account_id, self.last_trade_ID)
 		headers = {'Authorization' : 'Bearer ' + config.access_token, 'Content-Type': 'application/json', 'Accept-Datetime-Format': 'UNIX'}
+		req = requests.put(url, headers = headers)
+		json_data = req.json()
+		self.last_trade_ID = '-1'
+		return json_data
 
+		# Add method to pull transactions from API and add to DB - needed for tp & sl transactions
 
 	def log_to_db(self, order_response):
 		# If statements to call correct method

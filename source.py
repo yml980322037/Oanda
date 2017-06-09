@@ -1,9 +1,6 @@
 
-# coding: utf-8
-
 # This module is used to gather data pulled using the Oanda REST API into an SQL database
 
-# In[1]:
 
 import requests
 import json
@@ -12,8 +9,6 @@ import config
 import mysql.connector
 from mysql.connector import errorcode
 
-
-# In[2]:
 
 # Store oanda api & SQL Server authentication in config file
 
@@ -26,13 +21,13 @@ sql_user = config.sql_user_sourcefeed
 sql_password = config.sql_password_sourcefeed
 
 
-# In[150]:
 
 class Source:
     
+    # Currency pair has to be separated by underscore
     def __init__(self,ticker):
         self.ticker = ticker
-        self.url = url
+        self.url = url + '/v1/candles'
         self.headers = {'Authorization' : 'Bearer ' + access_token,'X-Accept-Datetime-Format': 'UNIX'}
         self.params = {'accountId' : account_id,'instrument': self.ticker}
     
@@ -44,7 +39,7 @@ class Source:
         self.params.pop('start', None)
         self.params.pop('end', None)
         json_data = req.json()
-        return json_data['candles']        
+        return json_data['candles']
     
     # Retrieve & store returned data into correct table using parameter - Use add to table
     def pull_to_table(self, starttime, endtime, granularity):
@@ -102,33 +97,11 @@ class Source:
             return False
 
 
-# In[151]:
 
 # Takes dictionary as parameter - Changes UNIX Timestamp to Datetime format for SQL Table
 def time_reformatter(json_data):
     for item in json_data:
         item['time'] = datetime.strftime(datetime.fromtimestamp(float(item['time'][:10])),'%Y-%m-%d %H:%M:%S')
-
-
-# In[152]:
-
-USD_JPY = Source('USD_JPY')
-
-
-# In[163]:
-
-# Change for Daylight Saving Time
-timenow = datetime.utcnow() + timedelta(hours = 1)
-
-if USD_JPY.halted() == False:
-    try:
-        a = USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'),
-                                  datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'M1')
-    except ValueError:
-        print('JSON Value Error')
-
-
-# In[ ]:
 
 
 

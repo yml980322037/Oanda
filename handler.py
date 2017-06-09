@@ -26,7 +26,7 @@ class DataHandler:
         ev = event.Event('tick', datetime.strptime("30/05/17 01:02", "%d/%m/%y %H:%M"))
         ev.price = {'bid' : df.iloc[-1]['close'] + 0.01, 'ask' : df.iloc[-1]['close'] - 0.01}
         ev.df = df
-        ev.spread = an.get_spread('USD_JPY')
+        ev.spread = 1.2
         return ev
 
 
