@@ -102,7 +102,7 @@ class Source:
 # Change for DST
 def time_reformatter(json_data):
     for item in json_data:
-        item['time'] = datetime.strftime(datetime.fromtimestamp(float(item['time'][:10]) + timedelta(hours = 1)),'%Y-%m-%d %H:%M:%S')
+        item['time'] = datetime.strftime(datetime.fromtimestamp(float(item['time'][:10])) + timedelta(hours = 1),'%Y-%m-%d %H:%M:%S')
 
 
 
