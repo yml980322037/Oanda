@@ -51,7 +51,7 @@ def average_dataframe(sqltable):
 
 # Adds simple moving average to dataframe
 def add_sma(df, val):
-    df['SMA{}'.format(val)] = df['openBid'].rolling(window=val).mean()
+    df['SMA{}'.format(val)] = df['closeBid'].rolling(window=val).mean()
 
 
 def add_2_sma_av(df, val, val2):
@@ -59,8 +59,8 @@ def add_2_sma_av(df, val, val2):
         temp = val
         val = val2
         val2 = temp
-    df['SMA{}'.format(val)] = df['open'].rolling(window=val).mean()
-    df['SMA{}'.format(val2)] = df['open'].rolling(window=val2).mean()
+    df['SMA{}'.format(val)] = df['close'].rolling(window=val).mean()
+    df['SMA{}'.format(val2)] = df['close'].rolling(window=val2).mean()
 
 
 #Returns state of shorter moving average compared to the longer moving average
