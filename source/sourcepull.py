@@ -15,8 +15,10 @@ USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(hours = 6),'%Y-%m-%d
 USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(days = 3),'%Y-%m-%d %H:%M:%S'),
 	                              datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'H3')
 
-try:
-	while True:
+
+while True:
+
+	try:
 		# Change for Daylight Saving Time
 		timenow = datetime.utcnow() + timedelta(hours = 1)
 
@@ -35,5 +37,6 @@ try:
 
 		sys.stdout.flush()
 		time.sleep(5)
-except:
-	print('API pull failed')
+
+	except:
+		print('API pull failed')
