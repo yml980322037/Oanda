@@ -64,7 +64,7 @@ class Source:
                    "volume = %(volume)s".format(granularity))
         
         cnx = mysql.connector.connect(user=sql_user, password=sql_password,
-                                 host=sql_host, database='USDJPY')
+                                 host=sql_host, database='USD_JPY')
         cursor = cnx.cursor()
         for i in json_dict:
             cursor.execute(add_row, i)
@@ -78,7 +78,7 @@ class Source:
                   "highask decimal(6,3), openbid decimal(6,3), closebid decimal(6,3), lowbid decimal(6,3), "
                   "highbid decimal(6,3), volume int(10))".format(granularity))
         cnx = mysql.connector.connect(user=sql_user, password=sql_password,
-                                 host=sql_host, database='USDJPY')
+                                 host=sql_host, database='USD_JPY')
         cursor = cnx.cursor()
         cursor.execute(create)
         cursor.close()

@@ -2,6 +2,7 @@ import config
 import requests
 import json
 from datetime import datetime
+from datetime import timedelta
 import mysql.connector
 
 class Execution:
@@ -24,7 +25,7 @@ class Execution:
 		req = requests.post(url, headers = headers, data = json.dumps(data))
 		json_data = req.json()
 		self.last_trade_ID = json_data['orderFillTransaction']['id']
-		return json_data
+		self.log_to_db(json_data)
 
 
 	def close_last_trade(self):
@@ -61,8 +62,8 @@ class Execution:
 
 	def log_order_fill_transaction(self,json_data):
 		data = json_data
-		data['tradeOpened'] = '0'
 		self.time_reformatter(data)
+		data['tradeOpened'] = '0'
 		add_row = ("INSERT INTO Log"
 			"(id, batch_id, time, type, reason, price, units, financing, account_balance) "
 			"VALUES (%(id)s, %(batchID)s, %(time)s, %(type)s, %(reason)s, "
@@ -81,7 +82,7 @@ class Execution:
 
 	def execute_db_query(self, query, data):
 		cnx = mysql.connector.connect(user=config.sql_user_sourcefeed, password=config.sql_password_sourcefeed,
-			host=config.sql_host, database='USDJPY')
+			host=config.sql_host, database='USD_JPY')
 		cursor = cnx.cursor()
 		cursor.execute(query, data)
 		cnx.commit()
@@ -95,7 +96,7 @@ class Execution:
 			" units INTEGER, pl DECIMAL(8,3), financing DECIMAL(8,3), stop_loss DECIMAL(6,3), take_profit DECIMAL(6,3), "
 			"account_balance DECIMAL(15,5))")
 		cnx = mysql.connector.connect(user=config.sql_user_sourcefeed, password=config.sql_password_sourcefeed,
-			host=config.sql_host, database='USDJPY')
+			host=config.sql_host, database='USD_JPY')
 		cursor = cnx.cursor()
 		cursor.execute(create)
 		cursor.close()
@@ -103,4 +104,13 @@ class Execution:
 
 
 	def time_reformatter(self, json_data):
-		json_data['time'] = datetime.strftime(datetime.fromtimestamp(float(json_data['time'][:10])),'%Y-%m-%d %H:%M:%S')
+		json_data['time'] = datetime.strftime((datetime.fromtimestamp(float(json_data['time'][:10])) + timedelta(hours = 1)),'%Y-%m-%d %H:%M:%S') 
+
+
+
+
+
+
+
+
+
