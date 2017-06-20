@@ -21,7 +21,7 @@ def selectlast(granularity, time, rows):
     sql = ("SELECT * FROM (SELECT * FROM {} WHERE time <= '{}' "
            "ORDER BY time DESC LIMIT {})a ORDER BY time ASC;".format(granularity, time, rows))
     cnx = mysql.connector.connect(user=sql_user, password=sql_password,
-                             host=sql_host, database='USDJPY')
+                             host=sql_host, database='USD_JPY')
     cursor = cnx.cursor()
     cursor.execute(sql)
     results = cursor.fetchall()
@@ -116,7 +116,7 @@ def get_open_positions():
 def last_fill():
     sql = ("SELECT time, units FROM Log Where type = 'ORDER_FILL' ORDER BY time DESC LIMIT 1")
     cnx = mysql.connector.connect(user=sql_user, password=sql_password,
-                             host=sql_host, database='USDJPY')
+                             host=sql_host, database='USD_JPY')
     cursor = cnx.cursor()
     cursor.execute(sql)
     results = cursor.fetchone()
