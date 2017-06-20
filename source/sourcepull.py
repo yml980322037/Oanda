@@ -1,6 +1,7 @@
 import source
 from datetime import datetime, timedelta
 import time
+import sys
 
 USD_JPY = source.Source('USD_JPY')
 
@@ -32,5 +33,5 @@ while True:
 	    except ValueError:
 	        print('JSON Value Error')
 
-
+	sys.stdout.flush()
 	time.sleep(5)
