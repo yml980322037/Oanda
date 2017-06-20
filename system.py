@@ -27,6 +27,7 @@ strategy = strategy.Strategy()
 risk = risk.Risk('USD_JPY', .9, 2)
 portfolio = portfolio.Portfolio()
 execution = execution.Execution('USD_JPY')
+execution.create_log_table()
 
 while True:
 
