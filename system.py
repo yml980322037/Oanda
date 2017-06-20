@@ -33,7 +33,7 @@ while True:
 
     try:
 
-        queue.add_to_queue(dh.get_latest_rate(n=15))
+        queue.add_to_queue(dh.get_latest_rate())
 
 
         while len(queue.queue) != 0:
