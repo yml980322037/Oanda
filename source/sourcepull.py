@@ -8,6 +8,7 @@ USD_JPY = source.Source('USD_JPY')
 USD_JPY.create_table('M15')
 USD_JPY.create_table('H3')
 
+timenow = datetime.utcnow() + timedelta(hours = 1)
 USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(hours = 6),'%Y-%m-%d %H:%M:%S'),
 	                              datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'M15')
 USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(days = 3),'%Y-%m-%d %H:%M:%S'),
