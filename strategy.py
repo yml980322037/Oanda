@@ -25,7 +25,6 @@ class Strategy:
 			print(ev.df[-2:][['time', 'State']])
 			print('SMA3: ',ev.df.iloc[-1]['SMA3'])
 			print('SMA7: ',ev.df.iloc[-1]['SMA7'])
-			print(ev.df)
 			ev.type = 'none'
 			return ev
 
