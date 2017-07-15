@@ -40,12 +40,26 @@ class Source:
         self.params.pop('end', None)
         json_data = req.json()
         return json_data['candles']
+
+    def pull_json_data_by_len(self, starttime, count, granularity):
+        self.params['start'] = datetime.timestamp(datetime.strptime(starttime,'%Y-%m-%d %H:%M:%S'))
+        self.params['count'] = count
+        self.params['granularity'] = granularity
+        req = requests.get(self.url, headers = self.headers, params = self.params)
+        self.params.pop('start', None)
+        self.params.pop('count', None)
+        json_data = req.json()
+        return json_data['candles']
     
     # Retrieve & store returned data into correct table using parameter - Use add to table
     def pull_to_table(self, starttime, endtime, granularity):
         json_data = self.pull_json_data(starttime, endtime, granularity)
         time_reformatter(json_data)
-        #self.create_table(granularity)
+        self.add_to_table(json_data, granularity)
+
+    def pull_to_table_by_len(self, starttime, count, granularity):
+        json_data = self.pull_json_data_by_len(starttime, count, granularity)
+        time_reformatter(json_data)
         self.add_to_table(json_data, granularity)
     
     
@@ -64,7 +78,7 @@ class Source:
                    "volume = %(volume)s".format(granularity))
         
         cnx = mysql.connector.connect(user=sql_user, password=sql_password,
-                                 host=sql_host, database='USD_JPY')
+                                 host=sql_host, database='{}'.format(self.ticker))
         cursor = cnx.cursor()
         for i in json_dict:
             cursor.execute(add_row, i)
@@ -74,11 +88,11 @@ class Source:
         
     def create_table(self, granularity):
         create = ("CREATE TABLE IF NOT EXISTS {}"
-                  "(time datetime unique, openask decimal(6,3), closeask decimal(6,3), lowask decimal(6,3), "
-                  "highask decimal(6,3), openbid decimal(6,3), closebid decimal(6,3), lowbid decimal(6,3), "
-                  "highbid decimal(6,3), volume int(10))".format(granularity))
+                  "(time datetime unique, openask decimal(6,5), closeask decimal(6,5), lowask decimal(6,5), "
+                  "highask decimal(6,5), openbid decimal(6,5), closebid decimal(6,5), lowbid decimal(6,5), "
+                  "highbid decimal(6,5), volume int(10))".format(granularity))
         cnx = mysql.connector.connect(user=sql_user, password=sql_password,
-                                 host=sql_host, database='USD_JPY')
+                                 host=sql_host, database='{}'.format(self.ticker))
         cursor = cnx.cursor()
         cursor.execute(create)
         cursor.close()
@@ -96,13 +110,34 @@ class Source:
         else:
             return False
 
+    def get_instrument_list(self):
+      url = 'https://api-fxpractice.oanda.com/v3/accounts/{}/instruments'.format(config.account_id)
+      headers = {'Authorization' : 'Bearer ' + access_token,'X-Accept-Datetime-Format': 'UNIX'}
+      req = requests.get(url, headers = headers)
+      json_data = req.json()
+      return json_data
+
+
+
+
+    ### TEST
+    '''
+    from dateutil import rrule
+    import datetime
+
+    for i in rrule.rrule(rrule.HOURLY, interval = 5, dtstart=datetime.datetime(2017,7,6), until=datetime.datetime(2017,7,8)):
+    time = datetime.datetime.strftime(i, '%Y-%m-%d %H:%M:%S')
+    print(time)
+    GBP_USD.pull_to_table_by_len(time, 5000, 'S5')'''
+
+
 
 
 # Takes dictionary as parameter - Changes UNIX Timestamp to Datetime format for SQL Table
 # Change for DST
 def time_reformatter(json_data):
     for item in json_data:
-        item['time'] = datetime.strftime(datetime.fromtimestamp(float(item['time'][:10])) + timedelta(hours = 1),'%Y-%m-%d %H:%M:%S')
+        item['time'] = datetime.strftime(datetime.utcfromtimestamp(float(item['time'][:10])) + timedelta(hours = 1),'%Y-%m-%d %H:%M:%S')
 
 
 

@@ -3,40 +3,30 @@ from datetime import datetime, timedelta
 import time
 import sys
 
-USD_JPY = source.Source('USD_JPY')
+GBP_USD = source.Source('GBP_USD')
 
 # Creates table if not on DB
-USD_JPY.create_table('M15')
-USD_JPY.create_table('H3')
+GBP_USD.create_table('S5')
 
 timenow = datetime.utcnow() + timedelta(hours = 1)
-USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(hours = 6),'%Y-%m-%d %H:%M:%S'),
-	                              datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'M15')
-USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(days = 3),'%Y-%m-%d %H:%M:%S'),
-	                              datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'H3')
+GBP_USD.pull_to_table(datetime.strftime(timenow - timedelta(hours = 4),'%Y-%m-%d %H:%M:%S'),
+	                              datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'S5')
+print('Initialised')
+time.sleep(3)
 
 
 while True:
 
 	try:
-		# Change for Daylight Saving Time
+	# Change for Daylight Saving Time
 		timenow = datetime.utcnow() + timedelta(hours = 1)
 
-		if USD_JPY.halted() == False:
-		    try:
-		        USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(minutes = 50),'%Y-%m-%d %H:%M:%S'),
-		                              datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'M15')
-		    except ValueError:
-		        print('JSON Value Error')
-
-		    try:
-		        USD_JPY.pull_to_table(datetime.strftime(timenow - timedelta(hours = 10),'%Y-%m-%d %H:%M:%S'),
-		                              datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'H3')
-		    except ValueError:
-		        print('JSON Value Error')
+		GBP_USD.pull_to_table(datetime.strftime(timenow - timedelta(minutes = 5),'%Y-%m-%d %H:%M:%S'), 
+			datetime.strftime(timenow + timedelta(minutes = 2),'%Y-%m-%d %H:%M:%S'), 'S5')
 
 		sys.stdout.flush()
-		time.sleep(5)
 
 	except:
-		print('API pull failed')
+		print('Pull failed')
+
+	time.sleep(3)

@@ -23,17 +23,17 @@ sql_password = config.sql_password_analysis
 
 dh = handler.DataHandler()
 queue = event.EventQueue()
-strategy = strategy.Strategy()
-risk = risk.Risk('USD_JPY', .9, 2)
+strategy = strategy.Strategy('GBP_USD')
+risk = risk.Risk('GBP_USD', .9, 2)
 portfolio = portfolio.Portfolio()
-execution = execution.Execution('USD_JPY')
+execution = execution.Execution('GBP_USD')
 execution.create_log_table()
 
 while True:
 
     try:
 
-        queue.add_to_queue(dh.get_latest_rate())
+        queue.add_to_queue(dh.get_latest_rate('GBP_USD'))
 
 
         while len(queue.queue) != 0:
