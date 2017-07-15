@@ -24,6 +24,10 @@ class Execution:
 		'type': 'MARKET', 'stopLossOnFill': stop_loss, 'takeProfitOnFill': take_profit, 'positionFill': 'DEFAULT'}}
 		req = requests.post(url, headers = headers, data = json.dumps(data))
 		json_data = req.json()
+		print('TP: ', take_profit)
+		print('SL: ', stop_loss)
+		print('Units: ', units)
+		print (json_data)
 		self.last_trade_ID = json_data['orderFillTransaction']['id']
 		self.log_to_db(json_data)
 
@@ -36,7 +40,6 @@ class Execution:
 		self.last_trade_ID = '-1'
 		return json_data
 
-		# Add method to pull transactions from API and add to DB - needed for tp & sl transactions
 
 	def log_to_db(self, order_response):
 		# If statements to call correct method
@@ -82,7 +85,7 @@ class Execution:
 
 	def execute_db_query(self, query, data):
 		cnx = mysql.connector.connect(user=config.sql_user_sourcefeed, password=config.sql_password_sourcefeed,
-			host=config.sql_host, database='USD_JPY')
+			host=config.sql_host, database='{}'.format(self.ticker))
 		cursor = cnx.cursor()
 		cursor.execute(query, data)
 		cnx.commit()
@@ -96,7 +99,7 @@ class Execution:
 			" units INTEGER, pl DECIMAL(8,3), financing DECIMAL(8,3), stop_loss DECIMAL(6,3), take_profit DECIMAL(6,3), "
 			"account_balance DECIMAL(15,5))")
 		cnx = mysql.connector.connect(user=config.sql_user_sourcefeed, password=config.sql_password_sourcefeed,
-			host=config.sql_host, database='USD_JPY')
+			host=config.sql_host, database='{}'.format(self.ticker))
 		cursor = cnx.cursor()
 		cursor.execute(create)
 		cursor.close()
