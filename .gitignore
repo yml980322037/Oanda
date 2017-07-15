@@ -3,4 +3,7 @@ config.py
 .ipynb_checkpoints
 __pycache__
 nohup.out
+systemtest.py
 test.ipynb
+test2.ipynb
+test3.ipynb
