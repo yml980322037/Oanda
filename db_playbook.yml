@@ -1,0 +1,130 @@
+---
+- hosts: database
+  become: yes
+  
+
+  tasks:
+
+  - name: upgrade all packages
+    yum: name=* state=latest
+
+  - name: install epel repo
+    yum: name=epel-release state=present
+
+  - name: install python34
+    yum: name=python34 state=present
+
+  - name: install python34 devel
+    yum: name=python34-devel.x86_64 state=present
+
+  - name: Install pip3.4
+    yum: name=python34-pip state=present
+
+  - name: Install requests
+    pip: name=requests state=present executable=pip3
+
+  - name: Add MariaDB repo
+    yum_repository:
+      name: MariaDB
+      description: MariaDB
+      baseurl: http://yum.mariadb.org/10.2/centos7-amd64
+      gpgkey: https://yum.mariadb.org/RPM-GPG-KEY-MariaDB
+      state: present
+      gpgcheck: yes
+
+  - name: Install MariaDB Server
+    yum:
+      name: MariaDB-server
+      state: present
+
+  - name: Start and enable service
+    service:
+      name: mysql
+      state: started
+      enabled: yes
+
+  - name: Install MySQLDB
+    yum:
+      name: MySQL-python
+      state: present
+
+  - name: copy my.cnf file to host
+    copy:
+      src: ~/my.cnf
+      dest: ~/.my.cnf
+
+  - name: Set root password 
+    mysql_user:
+      name: root
+      host_all: yes
+      password: "rootPass1"
+
+  - name: Deletes anonymous user
+    mysql_user:
+      user: ""
+      host_all: yes
+      state: absent
+
+  - name: Remove test database
+    mysql_db:
+      name: test
+      state: absent
+
+  - name: Create source user
+    mysql_user:
+      name: sourcefeed
+      host: '%'
+      priv: '*.*:ALL'
+      password: "feedaccesS1!"
+
+  - name: Create analysis user
+    mysql_user:
+      name: analysis
+      host: '%'
+      priv: '*.*:ALL'
+      password: "dataaccesS9!"
+
+  - name: Create database
+    mysql_db:
+      name: GBP_USD
+      state: present
+
+  - name: Install git
+    yum:
+      name: git
+      state: present
+
+  - name: Clone github repo
+    git:
+      repo: https://github.com/sh31/Oanda.git
+      dest: /home/oandarepo
+      version: master
+
+  - name: Copy config.py to project source folder
+    copy:
+      src: ~/Oanda/config.py
+      dest: /home/oandarepo/source
+
+  - name: Download mysql-connector from source
+    get_url:
+      url: http://www.mirrorservice.org/sites/ftp.mysql.com/Downloads/Connector-Python/mysql-connector-python-2.1.6.tar.gz
+      dest: /home/mysqlconnector.tar.gz
+
+  - name: extract mysql-connector tarball
+    unarchive:
+      src: /home/mysqlconnector.tar.gz
+      dest: /home
+      remote_src: True
+    notify: install mysql-connector
+
+  handlers:
+    - name: install mysql-connector
+      command: python3 setup.py install chdir=/home/mysql-connector-python-2.1.6
+
+
+
+
+
+
+
+

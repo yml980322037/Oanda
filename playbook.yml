@@ -1,0 +1,57 @@
+---
+- hosts: devvm
+  become: yes
+  
+  tasks:
+  - name: upgrade all packages
+    yum: name=* state=latest
+
+  - name: install epel repo
+    yum: name=epel-release state=present
+
+  - name: install python34
+    yum: name=python34 state=present
+
+  - name: install setuptools
+    yum: name=python34-setuptools state=present
+
+  - name: install pip3.4
+    yum: name=python34-pip state=present
+
+  - name: install pandas
+    pip: name=pandas state=present executable=pip3
+
+  - name: install requests
+    pip: name=requests state=present executable=pip3
+
+  - name: download mysql-connector from source
+    get_url:
+      url: http://www.mirrorservice.org/sites/ftp.mysql.com/Downloads/Connector-Python/mysql-connector-python-2.1.6.tar.gz
+      dest: /home/mysqlconnector.tar.gz
+
+  - name: extract mysql-connector tarball
+    unarchive:
+      src: /home/mysqlconnector.tar.gz
+      dest: /home
+      remote_src: True
+    notify: install mysql-connector
+
+  - name: install git
+    yum:
+      name: git
+      state: present
+
+  - name: clone github repo
+    git:
+      repo: https://github.com/sh31/Oanda.git
+      dest: /home/oandarepo
+      version: master
+
+  - name: copy config.py to project folder
+    copy:
+      src: ~/Oanda/config.py
+      dest: /home/oandarepo
+
+  handlers:
+    - name: install mysql-connector
+      command: python3 setup.py install chdir=/home/mysql-connector-python-2.1.6
