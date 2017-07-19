@@ -4,6 +4,10 @@ config.py
 __pycache__
 nohup.out
 systemtest.py
+systemtest1.py
+systemtest2.py
+systemtest3.py
+systemtest4.py
 test.ipynb
 test2.ipynb
 test3.ipynb

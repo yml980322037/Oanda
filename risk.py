@@ -12,15 +12,20 @@ class MTL_Risk:
         self.instrument = instrument
         self.riskpct = Decimal(riskpct/100)
         self.marginpct = Decimal(marginpct/100)
+        self.spread_limit = Decimal(250)
+        self.reward = Decimal(3)
+        self.initial_stop_change = Decimal(0.04)
+        self.trailing_stop = Decimal(0.05)
         
 
     def check_new_trade(self, event, balance):
         ev = event
         ev.type = 'trade'
         ev.riskpct = self.riskpct
-        ev.sl = self.sl_tp_calculator(ev, ev.signal)
+        ev.sl, ev.tp = self.sl_tp_calculator(ev, ev.signal)
         ev.pip_stop_loss = self.pip_stop_loss_calculator(ev.signal, ev.price, ev.sl)
         ev.pip_value = (balance * self.riskpct) / ev.pip_stop_loss
+        ev.reward = self.reward
         ev.units = self.position_size_calculator(balance, self.riskpct, ev.signal, ev.price, ev.pip_stop_loss)
         ev.margin = self.margin_requirement(ev.units, self.marginpct)
         ev.margin_total = ev.margin + (balance * self.riskpct)
@@ -30,56 +35,225 @@ class MTL_Risk:
         elif ev.signal == 'sell':
             price = ev.price['bid']
 
-        if ev.spread > 250 or (ev.pip_stop_loss - ev.spread) < 35 or abs(price - Decimal(ev.df['SMA 7'].iloc[-1])) * 10000 > 150:
+        if ev.spread > self.spread_limit:
+            print('Spread too high')
             ev.type = 'none'
             return ev
+
+        if ev.pip_stop_loss - ev.spread < Decimal(50):
+            print('SL too close')
+            ev.type = 'none'
+            return ev
+        
+        if abs(price - Decimal(ev.df['SMA 5'].iloc[-1])) * 10000 > Decimal(150):
+            print('Too far from SMA')
+            ev.type = 'none'
+            return ev
+
 
         return ev
 
 
-    def check_open_trade(self, event, trade_details):
-        if trade_details['signal'] == 'buy' and event.signal == 'sell':
-                event.type = 'close'
-                return event
-        elif trade_details['signal'] == 'sell' and event.signal == 'buy':
-                event.type = 'close'
-                return event
-        else:
-            print('Hold position')
-            event.type = 'none'
-            return event
 
     def check_sl(self, event, trade_details):
-        if trade_details['signal'] == 'buy' and event.price['bid'] - Decimal(0.04) > trade_details['sl']:
-            event.type = 'alter_trade'
-            event.trade_details = trade_details
-            event.trade_details['sl'] = event.price['bid'] - Decimal(0.04)
-            event.slchecked = True
-            return event
+        if trade_details['signal'] == 'buy':
+            if event.price['bid'] - self.trailing_stop >= trade_details['sl'] and 'be' in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = event.price['bid'] - self.trailing_stop
+                event.trade_details['pip_sl'] = an.pip_difference(event.trade_details['sl'], event.trade_details['price']['ask'])
+                event.slchecked = True
+                return event
+            elif event.price['bid'] - self.initial_stop_change >= trade_details['price']['ask'] and 'be' not in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = event.trade_details['price']['ask']
+                event.trade_details['be'] = True
+                event.slchecked = True
+                return event
+            else:
+                event.slchecked = True
+                return event
 
-        elif trade_details['signal'] == 'sell' and event.price['ask'] + Decimal(0.04) < trade_details['sl']:
-            event.type = 'alter_trade'
-            event.trade_details = trade_details
-            event.trade_details['sl'] = event.price['ask'] + Decimal(0.04)
-            event.slchecked = True
-            return event
+        elif trade_details['signal'] == 'sell':
+            if event.price['ask'] + self.trailing_stop <= trade_details['sl'] and 'be' in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = event.price['ask'] + self.trailing_stop
+                event.trade_details['pip_sl'] = an.pip_difference(event.trade_details['sl'], event.trade_details['price']['bid'])
+                event.slchecked = True
+                return event
+            elif event.price['ask'] + self.initial_stop_change <= trade_details['price']['bid'] and 'be' not in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = trade_details['price']['bid']
+                event.trade_details['be'] = True
+                event.slchecked = True
+                return event
+            else:
+                event.slchecked = True
+                return event
         else:
             event.slchecked = True
             return event
-        
+
 
     def sl_tp_calculator(self, event, signal):
         if signal == 'buy':
             price = event.price['ask']
-            sl = round(Decimal(min(event.df[-7:]['low'])), 5)
-            return sl
+            sl = round(Decimal(min(event.df[-5:]['low'])), 5)
+            diff = price - sl
+            tp = round(price + diff * self.reward, 5)
+            return sl, tp
 
         elif signal == 'sell':
             price = event.price['bid']
-            sl = round(Decimal(max(event.df[-7:]['high'])), 5)
-            return sl
+            sl = round(Decimal(max(event.df[-5:]['high'])), 5)
+            diff = (sl - price)
+            tp = round(price - diff * self.reward, 5)
+            return sl, tp
         else:
-            return 0
+            return 0, 0
+
+            
+    def position_size_calculator(self, balance, riskpct, signal, price, pipstoploss):
+        if signal == 'buy':
+            return round((((balance*riskpct)*price['ask']) / (pipstoploss/10000)))
+        elif signal == 'sell':
+            return -round((((balance*riskpct)*price['bid']) / (pipstoploss/10000)))
+
+    def pip_stop_loss_calculator(self, signal, price, stoploss):
+        if signal == 'buy':
+            return round((price['ask'] - stoploss)*10000, 2)
+        elif signal == 'sell':
+            return round((stoploss - price['bid'])*10000, 2)
+
+    def pip_take_profit_calculator(self, signal, price, takeprofit):
+        if signal == 'buy':
+            return an.pip_difference(price['ask'], takeprofit)
+        elif signal == 'sell':
+            return an.pip_difference(price['bid'], takeprofit)
+
+        
+    def margin_requirement(self, units, marginpct):
+        margin = units * marginpct
+        if margin < 0:
+            return -margin
+        return margin
+
+
+
+class MA_Risk:
+    
+    def __init__(self, instrument, riskpct, marginpct):
+        self.instrument = instrument
+        self.riskpct = Decimal(riskpct/100)
+        self.marginpct = Decimal(marginpct/100)
+        self.spread_limit = Decimal(3)
+        self.reward = Decimal(3)
+        
+
+    def check_new_trade(self, event, balance):
+        ev = event
+        ev.type = 'trade'
+        ev.riskpct = self.riskpct
+        ev.sl, ev.tp = self.sl_tp_calculator(ev, ev.signal)
+        ev.pip_stop_loss = self.pip_stop_loss_calculator(ev.signal, ev.price, ev.sl)
+        ev.pip_value = (balance * self.riskpct) / ev.pip_stop_loss
+        ev.reward = self.reward
+        ev.units = self.position_size_calculator(balance, self.riskpct, ev.signal, ev.price, ev.pip_stop_loss)
+        ev.margin = self.margin_requirement(ev.units, self.marginpct)
+        ev.margin_total = ev.margin + (balance * self.riskpct)
+
+        if ev.signal == 'buy':
+            price = ev.price['ask']
+        elif ev.signal == 'sell':
+            price = ev.price['bid']
+
+        if ev.sl == 0 or ev.tp == 0:
+            print('SL/TP not calculated')
+            ev.type = 'none'
+            return ev
+
+        if ev.spread > self.spread_limit:
+            print('Spread too high')
+            ev.type = 'none'
+            return ev
+
+        if ev.pip_stop_loss - ev.spread < Decimal(7.5):
+            print('SL too close')
+            ev.type = 'none'
+            return ev
+        
+        if abs(price - Decimal(ev.df['SMA 5'].iloc[-1])) * 10000 > Decimal(15):
+            print('Too far from SMA')
+            ev.type = 'none'
+            return ev
+
+
+        return ev
+
+
+
+    def check_sl(self, event, trade_details):
+        if trade_details['signal'] == 'buy':
+            if event.price['bid'] - Decimal(0.0015) >= trade_details['sl'] and 'be' in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = event.price['bid'] - Decimal(0.0015)
+                event.trade_details['pip_sl'] = an.pip_difference(event.trade_details['sl'], event.trade_details['price']['ask'])
+                event.slchecked = True
+                return event
+            elif event.price['bid'] - Decimal(0.001) >= trade_details['price']['ask'] and 'be' not in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = event.trade_details['price']['ask']
+                event.trade_details['be'] = True
+                event.slchecked = True
+                return event
+            else:
+                event.slchecked = True
+                return event
+
+        elif trade_details['signal'] == 'sell':
+            if event.price['ask'] + Decimal(0.0015) <= trade_details['sl'] and 'be' in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = event.price['ask'] + Decimal(0.0015)
+                event.trade_details['pip_sl'] = an.pip_difference(event.trade_details['sl'], event.trade_details['price']['bid'])
+                event.slchecked = True
+                return event
+            elif event.price['ask'] + Decimal(0.001) <= trade_details['price']['bid'] and 'be' not in trade_details.keys():
+                event.type = 'alter_trade'
+                event.trade_details = trade_details
+                event.trade_details['sl'] = trade_details['price']['bid']
+                event.trade_details['be'] = True
+                event.slchecked = True
+                return event
+            else:
+                event.slchecked = True
+                return event
+        else:
+            event.slchecked = True
+            return event
+
+
+    def sl_tp_calculator(self, event, signal):
+        if signal == 'buy':
+            price = event.price['ask']
+            sl = round(Decimal(min(event.df[-5:]['low'])), 5)
+            diff = price - sl
+            tp = round(price + diff * self.reward, 5)
+            return sl, tp
+
+        elif signal == 'sell':
+            price = event.price['bid']
+            sl = round(Decimal(max(event.df[-5:]['high'])), 5)
+            diff = (sl - price)
+            tp = round(price - diff * self.reward, 5)
+            return sl, tp
+        else:
+            return 0, 0
 
             
     def position_size_calculator(self, balance, riskpct, signal, price, pipstoploss):
@@ -146,10 +320,6 @@ class MR_Risk:
         print('SL: ', ev.pip_stop_loss)
         print('TP: ', ev.pip_take_profit)
 
-        #1.6 = 160
-        if ev.reward < Decimal(2.5):
-            ev.type = 'none'
-            print('R:R TOO LOW')
 
         if ev.pips_to_sma < ev.pip_take_profit or ev.pips_to_sma < Decimal(8.2):
             ev.type = 'none'

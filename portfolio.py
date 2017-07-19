@@ -47,171 +47,6 @@ class Portfolio:
 
 
 
-class TestPortfolio_MR:
-    
-    def __init__(self, balance, riskpct):
-        #initialist balance, margin requirement, pull existing open trades.
-        self.start_balance = Decimal(balance)
-        self.balance = Decimal(balance)
-        self.riskpct = Decimal(riskpct/100)
-        self.pct_change = 0
-        self.open_trade = False
-        self.trade_details = None
-        self.log_loss = []
-        self.log_profit = []
-
-
-    def check_order(self, event_object):
-        ev = event_object
-        if self.pct_change > -3 or ev.spread < 2 or ev.margin_total < (self.balance * 0.6):
-            ev.type = 'order'
-            self.log_trade(ev)
-            
-
-    def log_trade(self, ev):
-        self.open_trade = True
-        self.trade_details = {'sl': ev.sl, 'tp': ev.tp, 'signal': ev.signal, 'reward': ev.reward, 'pip_sl': ev.pip_stop_loss, 
-        'pip_tp': ev.pip_take_profit, 'pips_to_sma': ev.pips_to_sma, 'event': ev, 'spread': ev.spread}
-
-    
-
-    def percentage_change(self):
-        self.pct_change = round((self.balance - self.start_balance) / self.start_balance * 100, 2)
-
-
-
-class TestPortfolio:
-    
-    def __init__(self, balance, riskpct):
-        #initialist balance, margin requirement, pull existing open trades.
-        self.start_balance = Decimal(balance)
-        self.balance = Decimal(balance)
-        self.riskpct = Decimal(riskpct/100)
-        self.pct_change = 0
-        self.open_trade = False
-        self.trade_details = None
-        self.log_loss = []
-        self.log_profit = []
-
-
-    def check_order(self, event_object):
-        ev = event_object
-        if self.pct_change > -3 or ev.spread < 2 or ev.margin_total < (self.balance * 0.6):
-            ev.type = 'order'
-            self.log_trade(ev)
-            
-
-    def log_trade(self, ev):
-        self.open_trade = True
-        self.trade_details = {'time': ev.time, 'sl': ev.sl, 'tp': ev.tp, 'signal': ev.signal, 'reward': ev.reward, 'pip_sl': ev.pip_stop_loss, 
-        'pip_tp': ev.pip_take_profit, 'price': ev.price, 'event': ev, 'spread': ev.spread}
-
-
-    def check_position(self, event):
-        ev = event
-        if self.trade_details['signal'] == 'buy':
-            if ev.price['bid'] <= self.trade_details['sl']:
-                print('SL Triggered')
-                self.balance -= self.balance * self.riskpct
-                self.log_loss.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-                ev.type = 'none'
-                return ev
-            elif ev.price['bid'] >= self.trade_details['tp']:
-                print('TP Triggered')
-                self.balance += self.balance * self.riskpct * self.trade_details['reward']
-                self.log_profit.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-                ev.type = 'none'
-                return ev
-            else:
-                ev.checked = True
-                return ev
-        elif self.trade_details['signal'] == 'sell':
-            if ev.price['ask'] >= self.trade_details['sl']:
-                print('SL Triggered')
-                self.log_loss.append(self.trade_details)
-                self.balance -= self.balance * self.riskpct
-                self.open_trade = False
-                self.trade_details = None
-                ev.type = 'none'
-                return ev
-            elif ev.price['ask'] <= self.trade_details['tp']:
-                print('TP Triggered')
-                self.balance += self.balance * self.riskpct * self.trade_details['reward']
-                self.log_profit.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-                ev.type = 'none'
-                return ev
-            else:
-                ev.checked = True
-                return ev
-        else:
-            ev.checked = True
-            return ev
-
-
-    def close_trade(self, event):
-        if self.trade_details['signal'] == 'buy':
-            if event.price['bid'] > self.trade_details['price']['ask']:
-                print('Partial Profit')
-                pip_take_profit = an.pip_difference(self.trade_details['price']['ask'], event.price['bid'])
-                reward = pip_take_profit/self.trade_details['pip_sl']
-                self.trade_details['c'] = 'Partial'
-                self.trade_details['closed'] = event.price['bid']
-                self.balance += self.balance * self.riskpct * reward
-                self.log_profit.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-
-            elif event.price['bid'] < self.trade_details['price']['ask']:
-                print('Partial Loss')
-                pip_stop_loss = an.pip_difference(self.trade_details['price']['ask'], event.price['bid'])
-                loss_ratio = pip_stop_loss/self.trade_details['pip_sl']
-                self.trade_details['c'] = 'Partial'
-                self.trade_details['closed'] = event.price['bid']
-                self.balance -= self.balance * self.riskpct * loss_ratio
-                self.log_loss.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-
-        elif self.trade_details['signal'] == 'sell':
-            if event.price['ask'] < self.trade_details['price']['bid']:
-                print('Partial Profit')
-                pip_take_profit = an.pip_difference(self.trade_details['price']['bid'], event.price['ask'])
-                reward = pip_take_profit/self.trade_details['pip_sl']
-                self.trade_details['c'] = 'Partial'
-                self.trade_details['closed'] = event.price['ask']
-                self.balance += self.balance * self.riskpct * reward
-                self.log_profit.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-
-            elif event.price['ask'] > self.trade_details['price']['bid']:
-                print('Partial Loss')
-                pip_stop_loss = an.pip_difference(self.trade_details['price']['bid'], event.price['ask'])
-                loss_ratio = pip_stop_loss/self.trade_details['pip_sl']
-                self.trade_details['c'] = 'Partial'
-                self.trade_details['closed'] = event.price['ask']
-                self.balance -= self.balance * self.riskpct * loss_ratio
-                self.log_loss.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-
-    def alter_trade(self, event):
-        self.trade_details = event.trade_details
-
-    def percentage_change(self):
-        self.pct_change = round((self.balance - self.start_balance) / self.start_balance * 100, 2)
-
-
-
-
-
-
 class MTLTestPortfolio:
     
     def __init__(self, balance, riskpct):
@@ -228,35 +63,44 @@ class MTLTestPortfolio:
 
     def check_order(self, event_object):
         ev = event_object
-        if self.pct_change > -3 or ev.spread < 2 or ev.margin_total < (self.balance * 0.6):
+        if self.pct_change > -3 or ev.margin_total < (self.balance * 0.6):
             ev.type = 'order'
             self.log_trade(ev)
             
 
     def log_trade(self, ev):
         self.open_trade = True
-        self.trade_details = {'time': ev.time, 'sl': ev.sl, 'signal': ev.signal, 'price': ev.price,
-        'event': ev, 'spread': ev.spread, 'pip_value': ev.pip_value}
+        self.trade_details = {'time': ev.time, 'sl': ev.sl, 'tp': ev.tp, 'open_sl': ev.sl, 'open_tp': ev.tp , 'signal': ev.signal, 'price': ev.price,
+        'event': ev, 'spread': ev.spread, 'pip_value': ev.pip_value, 'reward': ev.reward}
 
 
     def check_position(self, event):
         ev = event
         if self.trade_details['signal'] == 'buy':
-            if ev.price['bid'] <= self.trade_details['sl'] and ev.price['bid'] < self.trade_details['price']['ask']:
-                print('SL Triggered')
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['ask'], ev.price['bid'])
-                self.balance -= self.trade_details['pip_value'] * self.trade_details['pip_difference']
-                self.trade_details['closed'] = event.price['bid']
-                self.log_loss.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-                ev.type = 'none'
-                return ev
-            elif ev.price['bid'] <= self.trade_details['sl'] and ev.price['bid'] > self.trade_details['price']['ask']:
-                print('TSP Triggered')
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['ask'], ev.price['bid'])
-                self.balance += self.trade_details['pip_value'] * self.trade_details['pip_difference']
-                self.trade_details['closed'] = event.price['bid']
+            if ev.price['bid'] <= self.trade_details['sl']:
+                if self.trade_details['sl'] == self.trade_details['price']['ask']:
+                    print('Break Even')
+                    return self.close_at_break_even(event)
+                elif self.trade_details['sl'] > self.trade_details['price']['ask']:
+                    print('TS Triggered')
+                    self.balance += (self.balance * self.riskpct) * (self.trade_details['sl'] / self.trade_details['open_sl'])
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+                else:
+                    print('SL Triggered')
+                    self.balance -= self.balance * self.riskpct
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+
+            elif ev.price['bid'] >= self.trade_details['tp']:
+                print('TP Triggered')
+                self.balance += self.balance * self.riskpct * self.trade_details['reward']
                 self.log_profit.append(self.trade_details)
                 self.open_trade = False
                 self.trade_details = None
@@ -266,22 +110,32 @@ class MTLTestPortfolio:
                 ev.plchecked = True
                 return ev
         elif self.trade_details['signal'] == 'sell':
-            if ev.price['ask'] >= self.trade_details['sl'] and ev.price['ask'] > self.trade_details['price']['bid']:
-                print('SL Triggered')
-                self.log_loss.append(self.trade_details)
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['ask'], ev.price['bid'])
-                self.balance -= self.trade_details['pip_value'] * self.trade_details['pip_difference']
+            if ev.price['ask'] >= self.trade_details['sl']:
+                if self.trade_details['sl'] == self.trade_details['price']['bid']:
+                    print('Break Even')
+                    return self.close_at_break_even(event)
+                elif self.trade_details['sl'] < self.trade_details['price']['bid']:
+                    print('TS Triggered')
+                    self.balance += self.balance * self.riskpct * (self.trade_details['sl'] / self.trade_details['open_sl'])
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+                else:
+                    print('SL Triggered')
+                    self.balance -= self.balance * self.riskpct
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+
+            elif ev.price['ask'] <= self.trade_details['tp']:
+                print('TP Triggered')
+                self.balance += self.balance * self.riskpct * self.trade_details['reward']
                 self.trade_details['closed'] = event.price['ask']
-                self.open_trade = False
-                self.trade_details = None
-                ev.type = 'none'
-                return ev
-            elif ev.price['ask'] >= self.trade_details['sl'] and ev.price['ask'] < self.trade_details['price']['bid']:
-                print('TSP Triggered')
                 self.log_profit.append(self.trade_details)
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['bid'], ev.price['ask'])
-                self.balance += self.trade_details['pip_value'] * self.trade_details['pip_difference']
-                self.trade_details['closed'] = event.price['ask']
                 self.open_trade = False
                 self.trade_details = None
                 ev.type = 'none'
@@ -295,54 +149,141 @@ class MTLTestPortfolio:
             return ev
 
 
-    def close_trade(self, event):
+    def alter_trade(self, event):
+        self.trade_details = event.trade_details
+
+    def close_at_break_even(self, event):
+        self.trade_details['closed'] = self.trade_details['sl']
+        self.log_loss.append(self.trade_details)
+        self.open_trade = False
+        self.trade_details = None
+        event.type = 'none'
+        return event
+    
+    def percentage_change(self):
+        self.pct_change = round((self.balance - self.start_balance) / self.start_balance * 100, 2)
+
+
+
+
+
+
+class MATestPortfolio:
+    
+    def __init__(self, balance, riskpct):
+        #initialist balance, margin requirement, pull existing open trades.
+        self.start_balance = Decimal(balance)
+        self.balance = Decimal(balance)
+        self.riskpct = Decimal(riskpct/100)
+        self.pct_change = 0
+        self.open_trade = False
+        self.trade_details = None
+        self.log_loss = []
+        self.log_profit = []
+
+
+    def check_order(self, event_object):
+        ev = event_object
+        if self.pct_change > -3 or ev.margin_total < (self.balance * 0.6):
+            ev.type = 'order'
+            self.log_trade(ev)
+            
+
+    def log_trade(self, ev):
+        self.open_trade = True
+        self.trade_details = {'time': ev.time, 'sl': ev.sl, 'tp': ev.tp, 'open_sl': ev.sl, 'open_tp': ev.tp , 'signal': ev.signal, 'price': ev.price,
+        'event': ev, 'spread': ev.spread, 'pip_value': ev.pip_value, 'open_pip_sl': ev.pip_stop_loss, 'reward': ev.reward}
+
+
+    def check_position(self, event):
+        ev = event
         if self.trade_details['signal'] == 'buy':
-            if event.price['bid'] > self.trade_details['price']['ask']:
-                print('Partial Profit')
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['ask'], event.price['bid'])
-                self.balance += self.trade_details['pip_value'] * self.trade_details['pip_difference']
-                self.trade_details['c'] = 'Partial'
-                self.trade_details['closed'] = event.price['bid']
+            if ev.price['bid'] <= self.trade_details['sl']:
+                if self.trade_details['sl'] == self.trade_details['price']['ask']:
+                    print('Break Even')
+                    return self.close_at_break_even(event)
+
+                elif self.trade_details['sl'] > self.trade_details['price']['ask']:
+                    print('TS Triggered')
+                    self.balance += (self.balance * self.riskpct) * (self.trade_details['pip_sl'] / self.trade_details['open_pip_sl'])
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+
+                else:
+                    print('SL Triggered')
+                    self.balance -= self.balance * self.riskpct
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+
+            elif ev.price['bid'] >= self.trade_details['tp']:
+                print('TP Triggered')
+                self.balance += self.balance * self.riskpct * self.trade_details['reward']
                 self.log_profit.append(self.trade_details)
                 self.open_trade = False
                 self.trade_details = None
-
-            elif event.price['bid'] < self.trade_details['price']['ask']:
-                print('Partial Loss')
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['ask'], event.price['bid'])
-                self.balance -= self.trade_details['pip_value'] * self.trade_details['pip_difference']
-                self.trade_details['c'] = 'Partial'
-                self.trade_details['closed'] = event.price['bid']
-                self.log_loss.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
-
+                ev.type = 'none'
+                return ev
+            else:
+                ev.plchecked = True
+                return ev
         elif self.trade_details['signal'] == 'sell':
-            if event.price['ask'] < self.trade_details['price']['bid']:
-                print('Partial Profit')
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['bid'], event.price['ask'])
-                self.balance += self.trade_details['pip_value'] * self.trade_details['pip_difference']
-                self.trade_details['c'] = 'Partial'
+            if ev.price['ask'] >= self.trade_details['sl']:
+                if self.trade_details['sl'] == self.trade_details['price']['bid']:
+                    print('Break Even')
+                    return self.close_at_break_even(event)
+
+                elif self.trade_details['sl'] < self.trade_details['price']['bid']:
+                    print('TS Triggered')
+                    self.balance += self.balance * self.riskpct * (self.trade_details['pip_sl'] / self.trade_details['open_pip_sl'])
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+                
+                else:
+                    print('SL Triggered')
+                    self.balance -= self.balance * self.riskpct
+                    self.log_loss.append(self.trade_details)
+                    self.open_trade = False
+                    self.trade_details = None
+                    ev.type = 'none'
+                    return ev
+
+            elif ev.price['ask'] <= self.trade_details['tp']:
+                print('TP Triggered')
+                self.balance += self.balance * self.riskpct * self.trade_details['reward']
                 self.trade_details['closed'] = event.price['ask']
                 self.log_profit.append(self.trade_details)
                 self.open_trade = False
                 self.trade_details = None
+                ev.type = 'none'
+                return ev
 
-            elif event.price['ask'] > self.trade_details['price']['bid']:
-                print('Partial Loss')
-                self.trade_details['pip_difference'] = an.pip_difference(self.trade_details['price']['ask'], event.price['bid'])
-                self.balance -= self.trade_details['pip_value'] * self.trade_details['pip_difference']
-                self.trade_details['c'] = 'Partial'
-                self.trade_details['closed'] = event.price['ask']
-                self.log_loss.append(self.trade_details)
-                self.open_trade = False
-                self.trade_details = None
+            else:
+                ev.plchecked = True
+                return ev
+        else:
+            ev.plchecked = True
+            return ev
+
 
     def alter_trade(self, event):
         self.trade_details = event.trade_details
 
-
-
+    def close_at_break_even(self, event):
+        self.trade_details['closed'] = self.trade_details['sl']
+        self.log_loss.append(self.trade_details)
+        self.open_trade = False
+        self.trade_details = None
+        event.type = 'none'
+        return event
     
     def percentage_change(self):
         self.pct_change = round((self.balance - self.start_balance) / self.start_balance * 100, 2)

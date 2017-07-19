@@ -36,8 +36,9 @@ class DataHandler:
 class HistoricalDataHandler:
     
     #Initialise row variable for iteration through dataframe
-    def __init__(self, ticker, start, end):
+    def __init__(self, ticker, granularity, start, end):
         self.ticker = ticker
+        self.granularity = granularity
         self.start = start
         self.end = end
         self.get_data()
@@ -45,64 +46,48 @@ class HistoricalDataHandler:
 
     # Load handler with historical data
     def get_data(self):
-        df = an.average_dataframe(an.selectdates(self.ticker, 'S5', self.start, self.end))
+        df = an.average_dataframe(an.selectdates(self.ticker, self.granularity, self.start, self.end))
+        df_full = an.dataframe(an.selectdates(self.ticker, self.granularity, self.start, self.end))
         self.df = df.set_index('time')
+        self.df_full = df_full.set_index('time')
         self.rownum = 0
 
 
-    #return next section of df   
-    def push_next_mr_bar(self, gap=2500):
+    def push_next_ma_bar_1m(self, gap=4200, open_position = False):
         lastrow = self.rownum + gap
         ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
         df_min = self.df[self.rownum:lastrow].resample('10Min', how=ohlc_dict).dropna(how='any')
         ev = event.Event('tick', self.df.index[lastrow])
         ev.df = df_min
         ev.ticker = self.ticker
-        sqlrow = an.selectrow('GBP_USD', 'S5', self.df.index[lastrow])
-        ev.price = {'ask': sqlrow[2], 'bid': sqlrow[6]}
-        ev.spread = round((sqlrow[2] - sqlrow[6]) * 10000, 1)
+        ev.price = {'ask': self.df_full.iloc[lastrow]['closeAsk'], 'bid': self.df_full.iloc[lastrow]['closeBid']}
+        ev.spread = round(an.pip_difference(self.df_full.iloc[lastrow]['closeAsk'], self.df_full.iloc[lastrow]['closeBid']), 1)
         self.rownum +=1
         return ev
 
-
-    def push_next_ma_bar(self, gap=5500, open_position = False):
+    def push_next_ma_bar_30m(self, gap=1100, open_position = False):
         lastrow = self.rownum + gap
         ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
-        df_min = self.df[self.rownum:lastrow].resample('10Min', how=ohlc_dict).dropna(how='any')
-        df_lt = self.df[self.rownum:lastrow].resample('30Min', how=ohlc_dict).dropna(how='any')
+        df_min = self.df[self.rownum:lastrow].resample('30Min', how=ohlc_dict).dropna(how='any')
         ev = event.Event('tick', self.df.index[lastrow])
         ev.df = df_min
-        ev.df_lt = df_lt
         ev.ticker = self.ticker
-        sqlrow = an.selectrow(self.ticker, 'S5', self.df.index[lastrow])
-        ev.price = {'ask': sqlrow[2], 'bid': sqlrow[6]}
-        ev.spread = round((sqlrow[2] - sqlrow[6]) * 10000, 1)
+        ev.price = {'ask': self.df_full.iloc[lastrow]['closeAsk'], 'bid': self.df_full.iloc[lastrow]['closeBid']}
+        ev.spread = round(an.pip_difference(self.df_full.iloc[lastrow]['closeAsk'], self.df_full.iloc[lastrow]['closeBid']), 1)
         self.rownum +=1
-        if open_position == True:
-            ev.open_position = True
-        else:
-            open_position = False
         return ev
 
-    def push_next_ma_bar_st(self, gap=3600, open_position = False):
+    def push_next_ma_bar_1h(self, gap=2200, open_position = False):
         lastrow = self.rownum + gap
         ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
-        df_min = self.df[self.rownum:lastrow].resample('5Min', how=ohlc_dict).dropna(how='any')
-        df_lt = self.df[self.rownum:lastrow].resample('15Min', how=ohlc_dict).dropna(how='any')
+        df_min = self.df[self.rownum:lastrow].resample('1H', how=ohlc_dict).dropna(how='any')
         ev = event.Event('tick', self.df.index[lastrow])
         ev.df = df_min
-        ev.df_lt = df_lt
         ev.ticker = self.ticker
-        sqlrow = an.selectrow(self.ticker, 'S5', self.df.index[lastrow])
-        ev.price = {'ask': sqlrow[2], 'bid': sqlrow[6]}
-        ev.spread = round((sqlrow[2] - sqlrow[6]) * 10000, 1)
+        ev.price = {'ask': self.df_full.iloc[lastrow]['closeAsk'], 'bid': self.df_full.iloc[lastrow]['closeBid']}
+        ev.spread = round(an.pip_difference(self.df_full.iloc[lastrow]['closeAsk'], self.df_full.iloc[lastrow]['closeBid']), 1)
         self.rownum +=1
-        if open_position == True:
-            ev.open_position = True
-        else:
-            open_position = False
         return ev
-
 
 
 

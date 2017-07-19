@@ -2,127 +2,87 @@ import event
 import analysis as an
 from datetime import timedelta
 
-
-
-class MTL_Strategy:
+class MA_ST_Strategy:
 
 	def __init__(self, ticker):
 		self.ticker = ticker
 		self.sma_st_lt = 0
 		self.sma_st_lt_change_time = 0
 		self.signal_sent_current_period = False
+		self.latest_signal = 'none'
+		self.latest_signal_countdown = 0
 
 	def generate_signal(self, eventobject, open_trade):
 		ev = eventobject
 		ev.type = 'signal'
 		signal = 'none'
 		ev.signal = 'none'
-		an.add_2_sma(ev.df, 7, 21)
-		an.add_sma(ev.df, 70)
-		an.compare_state(ev.df, 'SMA 7', 'SMA 21')
-		
+		an.add_sma(ev.df, 20)
+		an.add_2_sma(ev.df, 5, 10)
+		an.compare_state(ev.df, 'SMA 5', 'SMA 10')
+
 		# check if sma_mt_lt has changed
-		if ev.df.iloc[-1]['SMA 7'] > ev.df.iloc[-1]['SMA 70']:
-			if self.sma_st_lt != 'above':
-				self.sma_st_lt = 'above'
+		if ev.df.iloc[-1]['SMA 5'] > ev.df.iloc[-1]['SMA 20']:
+			if self.sma_st_lt != 'Above':
+				print('Switched to Above')
+				self.sma_st_lt = 'Above'
 				self.sma_st_lt_change_time = ev.time
 				self.signal_sent_current_period = False
-		elif ev.df.iloc[-1]['SMA 7'] < ev.df.iloc[-1]['SMA 70']:
-			if self.sma_st_lt != 'below':
-				self.sma_st_lt = 'below'
+		elif ev.df.iloc[-1]['SMA 5'] < ev.df.iloc[-1]['SMA 20']:
+			if self.sma_st_lt != 'Below':
+				print('Switched to Below')
+				self.sma_st_lt = 'Below'
 				self.sma_st_lt_change_time = ev.time
 				self.signal_sent_current_period = False
 
-
-		# Checks if the shorter term averages have crossed
-		if ev.df.iloc[-1]['State'] != ev.df.iloc[-2]['State'] and ev.df.iloc[-1]['State'] != ev.df.iloc[-3]['State']:
-			if ev.df.iloc[-1]['State'] == 'Above':
-				signal = 'buy'
-			elif ev.df.iloc[-1]['State'] == 'Below':
-				signal = 'sell'
-		else:
-			ev.type = 'none'
-			return ev
-
-		if open_trade:
-			if signal != 'none':
-				ev.signal = signal
-				return ev
-			elif signal == 'none':
-				ev.type = 'none'
-				return ev
-
-
-		if self.signal_sent_current_period == True:
-			ev.type = 'none'
-			return ev
-
-		if ev.time - self.sma_st_lt_change_time > timedelta(minutes = 90):
+		if self.latest_signal_countdown > 0 and self.latest_signal == self.sma_st_lt:
+			self.latest_signal_countdown = 0
 			self.signal_sent_current_period = True
-			ev.type = 'none'
-			return ev
-
-
-		# Checks if short term average matches longer term average (trend)
-		if ev.df.iloc[-1]['SMA 7'] > ev.df.iloc[-1]['SMA 70'] and signal == 'buy':
-			self.signal_sent_current_period = True
-			ev.signal = 'buy'
-			return ev
-		elif ev.df.iloc[-1]['SMA 7'] < ev.df.iloc[-1]['SMA 70'] and signal == 'sell':
-			self.signal_sent_current_period = True
-			ev.signal = 'sell'
-			return ev
-		else:
-			ev.type = 'none'
-			return ev
-
-
-
-
-
-
-class MA_ST_Strategy:
-
-	def __init__(self, ticker):
-		self.ticker = ticker
-
-	def generate_signal(self, eventobject, open_trade):
-		ev = eventobject
-		ev.type = 'signal'
-		signal = 'none'
-		ev.signal = 'none'
-		an.add_2_sma(ev.df, 7, 21)
-		an.compare_state(ev.df, 'SMA 7', 'SMA 21')
-
-
-		if ev.df.iloc[-1]['State'] != ev.df.iloc[-2]['State']:# and ev.df.iloc[-1]['State'] != ev.df.iloc[-3]['State']: l==17 p ==2
-			if ev.df.iloc[-1]['State'] == 'Above':
-				signal = 'Above'
-			elif ev.df.iloc[-1]['State'] == 'Below':
-				signal = 'Below'
-		else:
-			ev.type = 'none'
-			return ev
-
-		if open_trade == True:
-			ev.signal = signal
-			return ev
-
-		long_term_df = ev.df_lt
-		an.add_2_sma(long_term_df, 5, 10)
-		an.compare_state(long_term_df, 'SMA 5', 'SMA 10')
-		long_term_trend = long_term_df.iloc[-1]['State']
-		if ev.df.iloc[-1]['State'] == long_term_trend:
-			if signal == 'Above':
+			if self.latest_signal == 'Above':
 				ev.signal = 'buy'
 				return ev
-			elif signal == 'Below':
+			elif self.latest_signal == 'Below':
 				ev.signal = 'sell'
 				return ev
 		else:
+			self.latest_signal_countdown -= 1
+
+
+
+		'''
+		if ev.time - self.sma_st_lt_change_time > timedelta(hours = 10):
+			self.signal_sent_current_period = True
+			print('Too long between switch')
 			ev.type = 'none'
 			return ev
+		if self.signal_sent_current_period == True:
+			ev.type = 'none'
+			return ev
+		'''
 
+		if ev.df.iloc[-1]['State'] != ev.df.iloc[-2]['State']:
+			if ev.df.iloc[-1]['State'] == 'Above' and ev.df.iloc[-1]['State'] == self.sma_st_lt:
+				self.signal_sent_current_period = True
+				self.latest_signal_countdown = 0
+				ev.signal = 'buy'
+				print('buy')
+				return ev
+			elif ev.df.iloc[-1]['State'] == 'Below' and ev.df.iloc[-1]['State'] == self.sma_st_lt:
+				self.signal_sent_current_period = True
+				self.latest_signal_countdown = 0
+				ev.signal = 'sell'
+				print('sell')
+				return ev
+			elif ev.df.iloc[-1]['State'] != self.sma_st_lt:
+				print('sig different')
+				self.latest_signal = ev.df.iloc[-1]['State']
+				self.latest_signal_countdown = 3
+				ev.type = 'none'
+				return ev
+
+		else:
+			ev.type = 'none'
+			return ev
 		
 
 
