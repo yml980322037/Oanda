@@ -9,10 +9,8 @@ from dateutil.rrule import rrule, HOURLY, SECONDLY
 # Needs changing for DST
 
 class DataHandler:
-    
     # Pull and return latest rate (with Dataframe of N previous bars)
     # Add error check for time on df vs current time
-    # Change for DST
     def get_latest_rate(self, ticker, granularity='M10', n=10):
         time = datetime.utcnow() + timedelta(hours = 1)
         df = an.average_dataframe(an.selectlast(ticker, granularity, datetime.utcnow() + timedelta(hours = 1), n))
@@ -21,15 +19,6 @@ class DataHandler:
         ev.price = an.get_current_rate(ticker)
         ev.df = df
         ev.spread = an.get_spread(ticker)
-        return ev
-
-    def get_single_rate(self, ticker, granularity='M10', n=10):
-        datetime_object = datetime.strptime("04/07/17 09:14", "%d/%m/%y %H:%M")
-        df = an.average_dataframe(an.selectlast(ticker, granularity, datetime_object, n))
-        ev = event.Event('tick', datetime.strptime("03/07/17 21:31", "%d/%m/%y %H:%M"))
-        ev.price = {'bid' : df.iloc[-1]['close'] + 0.0001, 'ask' : df.iloc[-1]['close'] - 0.0001}
-        ev.df = df
-        ev.spread = 1.2
         return ev
 
 

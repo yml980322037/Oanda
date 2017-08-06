@@ -20,7 +20,7 @@ strategy = strategy.MA_Strategy(ticker)
 risk = risk.MA_Risk(ticker, 1, 2)
 portfolio = portfolio.MATestPortfolio(300, 1)
 
-dh = handler.HistoricalDataHandler(ticker, 'H1', datetime(2016, 1, 1, 0, 0, 0), datetime(2017, 6, 1, 0, 0, 0))
+dh = handler.HistoricalDataHandler(ticker, 'M1', datetime(2016, 1, 1, 0, 0, 0), datetime(2017, 6, 1, 0, 0, 0))
 length = len(dh.df)
 
 
