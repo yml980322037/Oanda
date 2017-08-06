@@ -99,6 +99,7 @@
       repo: https://github.com/sh31/Oanda.git
       dest: /home/oandarepo
       version: master
+      force: yes
 
   - name: Copy config.py to project source folder
     copy:
