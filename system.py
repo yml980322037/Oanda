@@ -14,69 +14,83 @@ import sys
 
 #SQL & API credentials. Store in config file.
 
-access_token = config.access_token
-account_id = config.account_id
-
-sql_host = config.sql_host
-sql_user = config.sql_user_analysis
-sql_password = config.sql_password_analysis
-
-dh = handler.DataHandler()
+ticker = 'GBP_USD'
 queue = event.EventQueue()
-strategy = strategy.Strategy('GBP_USD')
-risk = risk.Risk('GBP_USD', .9, 2)
-portfolio = portfolio.Portfolio()
-execution = execution.Execution('GBP_USD')
-execution.create_log_table()
+strategy = strategy.MA_Strategy(ticker)
+risk = risk.MA_Risk(ticker, 1, 2)
+portfolio = portfolio.MATestPortfolio(300, 1)
 
-while True:
-
-    try:
-
-        queue.add_to_queue(dh.get_latest_rate('GBP_USD'))
+dh = handler.HistoricalDataHandler(ticker, 'H1', datetime(2016, 1, 1, 0, 0, 0), datetime(2017, 6, 1, 0, 0, 0))
+length = len(dh.df)
 
 
-        while len(queue.queue) != 0:
-            timenow = datetime.utcnow() + timedelta(hours = 1)
-            next_event = queue.next_event()
+for i in range(length):
 
-            if next_event.type == 'tick':
-                #Call strategy
-                queue.add_to_queue(strategy.generate_signal(next_event))
-                print(str(timenow) + ':  ' + 'Strategy called')
+    queue.add_to_queue(dh.push_next_ma_bar_1h())
 
-            elif next_event.type == 'signal':
-                # If signal requires, call risk
-                if next_event.signal != 'none':
-                    queue.add_to_queue(risk.calculate_risk(next_event))
-                    print(str(timenow) + ':  ' + 'Risk called')
 
-            elif next_event.type == 'trade':
-                #Call portfolio
-                queue.add_to_queue(portfolio.check_order(next_event))
-                print(str(timenow) + ':  ' + 'Portfolio called')
+    while len(queue.queue) != 0:
+        event = queue.next_event()
+        print('time: ', event.time, 'Balance: ', portfolio.balance, ' Open: ', portfolio.open_trade)
 
-            elif next_event.type == 'order':
-                #Call execution
-                execution.order(next_event)
-                print(str(timenow) + ':  ' + 'Execution called')
+        if event.type == 'none':
+            continue
 
-            elif next_event.type == 'close':
-                execution.close_last_trade()
-                print(str(timenow) + ':  ' + 'Execution (close trade) called')
+        elif event.type == 'tick' and portfolio.open_trade and not (hasattr(event, 'plchecked')):
+            queue.add_to_queue(portfolio.check_position(event))
+            try:
+                if portfolio.trade_details['signal'] == 'sell':
+                    print('Position:  ', portfolio.trade_details['signal'])
+                    print('From Entry:', (portfolio.trade_details['price']['bid'] - event.price['ask']) * 10000)
+                    print('Price:     ', event.price['ask'])
+                    print('SL:        ', portfolio.trade_details['sl'])
+                    print('To SL:     ', an.pip_difference(portfolio.trade_details['sl'], event.price['ask']))
+                    print('To TP:     ', an.pip_difference(portfolio.trade_details['tp'], event.price['ask']))
+                elif portfolio.trade_details['signal'] == 'buy':
+                    print('Position: ', portfolio.trade_details['signal'])
+                    print('From Entry', (event.price['bid'] - portfolio.trade_details['price']['ask']) * 10000)
+                    print('Price:    ', event.price['bid'])
+                    print('SL:       ', portfolio.trade_details['sl'])
+                    print('To SL:    ', an.pip_difference(portfolio.trade_details['sl'], event.price['bid']))
+                    print('To TP:    ', an.pip_difference(portfolio.trade_details['tp'], event.price['bid']))
+            except:
+                pass
             
-            elif next_event.type == 'none':
-                print(str(timenow) + ':  ' + 'Not passed')
+        elif event.type == 'tick' and portfolio.open_trade and not (hasattr(event, 'slchecked')):
+            queue.add_to_queue(risk.check_sl(event, portfolio.trade_details))
+            try:
+                if portfolio.trade_details['signal'] == 'sell':
+                    print('Position: ', portfolio.trade_details['signal'])
+                    print('From Entry:', (portfolio.trade_details['price']['bid'] - event.price['ask']) * 10000)
+                    print('Price:     ', event.price['ask'])
+                    print('SL:        ', portfolio.trade_details['sl'])
+                    print('To SL:     ', an.pip_difference(portfolio.trade_details['sl'], event.price['ask']))
+                    print('To TP:     ', an.pip_difference(portfolio.trade_details['tp'], event.price['ask']))
+                elif portfolio.trade_details['signal'] == 'buy':
+                    print('Position: ', portfolio.trade_details['signal'])
+                    print('From Entry', (event.price['bid'] - portfolio.trade_details['price']['ask']) * 10000)
+                    print('Price:    ', event.price['bid'])
+                    print('SL:       ', portfolio.trade_details['sl'])
+                    print('To SL:    ', an.pip_difference(portfolio.trade_details['sl'], event.price['bid']))
+                    print('To TP:    ', an.pip_difference(portfolio.trade_details['tp'], event.price['bid']))
+            except:
+                pass
+        
+        elif event.type == 'alter_trade':
+            portfolio.alter_trade(event)
 
-            else:
-                print(str(timenow) + ':  ' + 'Queue Error')
+        elif event.type == 'tick':
+            # Call strategy
+            queue.add_to_queue(strategy.generate_signal(event, portfolio.open_trade))
+            print(event.type)
 
-    except Exception as e:
-        print('Loop failed')
-        print(repr(e))
+        elif event.type == 'signal':
+            queue.add_to_queue(risk.check_new_trade(event, portfolio.balance))
 
+        elif event.type == 'trade':
+            # Call portfolio
+            portfolio.check_order(event)
 
-    print('')
-
+        else:
+            print('Queue Error')
     sys.stdout.flush()
-    time.sleep(30)

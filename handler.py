@@ -44,7 +44,7 @@ class HistoricalDataHandler:
         self.get_data()
 
 
-    # Load handler with historical data
+    # Load handler with historical data - change to take granularity as input
     def get_data(self):
         df = an.average_dataframe(an.selectdates(self.ticker, self.granularity, self.start, self.end))
         df_full = an.dataframe(an.selectdates(self.ticker, self.granularity, self.start, self.end))
@@ -65,10 +65,10 @@ class HistoricalDataHandler:
         self.rownum +=1
         return ev
 
-    def push_next_ma_bar_30m(self, gap=1100, open_position = False):
+    def push_next_ma_bar_15m(self, gap=1100, open_position = False):
         lastrow = self.rownum + gap
         ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
-        df_min = self.df[self.rownum:lastrow].resample('30Min', how=ohlc_dict).dropna(how='any')
+        df_min = self.df[self.rownum:lastrow].resample('15Min', how=ohlc_dict).dropna(how='any')
         ev = event.Event('tick', self.df.index[lastrow])
         ev.df = df_min
         ev.ticker = self.ticker
@@ -77,7 +77,8 @@ class HistoricalDataHandler:
         self.rownum +=1
         return ev
 
-    def push_next_ma_bar_1h(self, gap=2200, open_position = False):
+
+    def push_next_ma_bar_1h(self, gap=3000, open_position = False):
         lastrow = self.rownum + gap
         ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
         df_min = self.df[self.rownum:lastrow].resample('1H', how=ohlc_dict).dropna(how='any')

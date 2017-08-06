@@ -2,7 +2,7 @@ import event
 import analysis as an
 from datetime import timedelta
 
-class MA_ST_Strategy:
+class MA_Strategy:
 
 	def __init__(self, ticker):
 		self.ticker = ticker
@@ -35,6 +35,10 @@ class MA_ST_Strategy:
 				self.sma_st_lt_change_time = ev.time
 				self.signal_sent_current_period = False
 
+		if self.signal_sent_current_period == True:
+			ev.type = 'none'
+			return ev
+
 		if self.latest_signal_countdown > 0 and self.latest_signal == self.sma_st_lt:
 			self.latest_signal_countdown = 0
 			self.signal_sent_current_period = True
@@ -55,9 +59,7 @@ class MA_ST_Strategy:
 			print('Too long between switch')
 			ev.type = 'none'
 			return ev
-		if self.signal_sent_current_period == True:
-			ev.type = 'none'
-			return ev
+		
 		'''
 
 		if ev.df.iloc[-1]['State'] != ev.df.iloc[-2]['State']:
@@ -83,7 +85,8 @@ class MA_ST_Strategy:
 		else:
 			ev.type = 'none'
 			return ev
-		
+
+
 
 
 class MR_Strategy:
