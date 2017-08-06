@@ -15,7 +15,7 @@ class MA_Risk:
         self.spread_limit = Decimal(3)
         self.reward = Decimal(3)
         self.initial_stop_change = Decimal(0.0005)
-        self.trailing_stop = Decimal(0.0015)
+        self.trailing_stop = Decimal(0.002)
         
 
     def check_new_trade(self, event, balance):
