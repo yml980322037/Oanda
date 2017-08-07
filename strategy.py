@@ -22,14 +22,12 @@ class MA_Strategy:
 		an.compare_state(ev.df, 'SMA 5', 'SMA 10')
 
 		# check if sma_mt_lt has changed
-		if ev.df.iloc[-1]['SMA 5'] > ev.df.iloc[-1]['SMA 20']:
-			if self.sma_st_lt != 'Above':
+		if ev.df.iloc[-1]['SMA 5'] > ev.df.iloc[-1]['SMA 20'] and self.sma_st_lt != 'Above':
 				print('Switched to Above')
 				self.sma_st_lt = 'Above'
 				self.sma_st_lt_change_time = ev.time
 				self.signal_sent_current_period = False
-		elif ev.df.iloc[-1]['SMA 5'] < ev.df.iloc[-1]['SMA 20']:
-			if self.sma_st_lt != 'Below':
+		elif ev.df.iloc[-1]['SMA 5'] < ev.df.iloc[-1]['SMA 20'] and self.sma_st_lt != 'Below':
 				print('Switched to Below')
 				self.sma_st_lt = 'Below'
 				self.sma_st_lt_change_time = ev.time
