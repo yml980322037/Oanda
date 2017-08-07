@@ -31,52 +31,25 @@ class HistoricalDataHandler:
         self.start = start
         self.end = end
         self.get_data()
+        self.ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
 
 
     # Load handler with historical data - change to take granularity as input
     def get_data(self):
-        df = an.average_dataframe(an.selectdates(self.ticker, self.granularity, self.start, self.end))
-        df_full = an.dataframe(an.selectdates(self.ticker, self.granularity, self.start, self.end))
+        df = an.average_dataframe(an.selectdates(self.ticker, self.granularity, self.start - timedelta(hours = 100), self.end))
+        df_full = an.dataframe(an.selectdates(self.ticker, self.granularity, self.start - timedelta(hours = 100), self.end))
+        self.lastrow = df.loc[df['time'] == self.start].index[0]
         self.df = df.set_index('time')
         self.df_full = df_full.set_index('time')
-        self.rownum = 0
 
 
-    def push_next_ma_bar_1m(self, gap=4200, open_position = False):
-        lastrow = self.rownum + gap
-        ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
-        df_min = self.df[self.rownum:lastrow].resample('10Min', how=ohlc_dict).dropna(how='any')
-        ev = event.Event('tick', self.df.index[lastrow])
-        ev.df = df_min
+    def push_next_ma_bar_1h(self, gap=1300):
+        ev = event.Event('tick', self.df.index[self.lastrow])
+        ev.df = self.df[self.lastrow - gap:self.lastrow].resample('1H', how=self.ohlc_dict).dropna(how='any')
         ev.ticker = self.ticker
-        ev.price = {'ask': self.df_full.iloc[lastrow]['closeAsk'], 'bid': self.df_full.iloc[lastrow]['closeBid']}
-        ev.spread = round(an.pip_difference(self.df_full.iloc[lastrow]['closeAsk'], self.df_full.iloc[lastrow]['closeBid']), 1)
-        self.rownum +=1
-        return ev
-
-    def push_next_ma_bar_15m(self, gap=1100, open_position = False):
-        lastrow = self.rownum + gap
-        ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
-        df_min = self.df[self.rownum:lastrow].resample('15Min', how=ohlc_dict).dropna(how='any')
-        ev = event.Event('tick', self.df.index[lastrow])
-        ev.df = df_min
-        ev.ticker = self.ticker
-        ev.price = {'ask': self.df_full.iloc[lastrow]['closeAsk'], 'bid': self.df_full.iloc[lastrow]['closeBid']}
-        ev.spread = round(an.pip_difference(self.df_full.iloc[lastrow]['closeAsk'], self.df_full.iloc[lastrow]['closeBid']), 1)
-        self.rownum +=1
-        return ev
-
-
-    def push_next_ma_bar_1h(self, gap=3000, open_position = False):
-        lastrow = self.rownum + gap
-        ohlc_dict = {'open':'first', 'high':'max', 'low':'min', 'close': 'last'}
-        df_min = self.df[self.rownum:lastrow].resample('1H', how=ohlc_dict).dropna(how='any')
-        ev = event.Event('tick', self.df.index[lastrow])
-        ev.df = df_min
-        ev.ticker = self.ticker
-        ev.price = {'ask': self.df_full.iloc[lastrow]['closeAsk'], 'bid': self.df_full.iloc[lastrow]['closeBid']}
-        ev.spread = round(an.pip_difference(self.df_full.iloc[lastrow]['closeAsk'], self.df_full.iloc[lastrow]['closeBid']), 1)
-        self.rownum +=1
+        ev.price = {'ask': self.df_full.iloc[self.lastrow]['closeAsk'], 'bid': self.df_full.iloc[self.lastrow]['closeBid']}
+        ev.spread = round(an.pip_difference(self.df_full.iloc[self.lastrow]['closeAsk'], self.df_full.iloc[self.lastrow]['closeBid']), 1)
+        self.lastrow += 1
         return ev
 
 
