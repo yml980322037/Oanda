@@ -13,7 +13,7 @@ class MA_Risk:
         self.riskpct = Decimal(riskpct/100)
         self.marginpct = Decimal(marginpct/100)
         self.spread_limit = Decimal(3)
-        self.reward = Decimal(3)
+        self.reward = Decimal(2)
         self.initial_stop_change = Decimal(0.0005)
         self.trailing_stop = Decimal(0.002)
         
